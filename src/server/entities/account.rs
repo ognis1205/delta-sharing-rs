@@ -1,7 +1,3 @@
-use crate::impl_i64_property;
-use crate::impl_string_property;
-use crate::impl_uuid_property;
-use crate::server::repositories::account::Repository;
 use anyhow::anyhow;
 use anyhow::Result;
 use argon2::password_hash::rand_core::OsRng;
@@ -17,12 +13,15 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::impl_i64_property;
+use crate::impl_string_property;
+use crate::impl_uuid_property;
+use crate::server::repositories::account::Repository;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Id {
     value: Uuid,
 }
-
-impl_uuid_property!(Id);
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Name {
@@ -30,15 +29,11 @@ pub struct Name {
     value: String,
 }
 
-impl_string_property!(Name);
-
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Email {
     #[validate(email)]
     value: String,
 }
-
-impl_string_property!(Email);
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Password {
@@ -46,15 +41,11 @@ pub struct Password {
     value: String,
 }
 
-impl_string_property!(Password);
-
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Namespace {
     #[validate(length(min = 1))]
     value: String,
 }
-
-impl_string_property!(Namespace);
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Ttl {
@@ -62,6 +53,11 @@ pub struct Ttl {
     value: i64,
 }
 
+impl_uuid_property!(Id);
+impl_string_property!(Name);
+impl_string_property!(Email);
+impl_string_property!(Password);
+impl_string_property!(Namespace);
 impl_i64_property!(Ttl);
 
 #[derive(Debug, Clone, PartialEq, Eq, Getters, Setters)]
@@ -145,67 +141,61 @@ mod tests {
 
     #[test]
     fn test_valid_id() {
-        assert!(matches!(Id::try_from(testutils::rand::uuid()), Ok(_)));
+        assert!(Id::try_from(testutils::rand::uuid()).is_ok());
     }
 
     #[test]
     fn test_invalid_id() {
-        assert!(matches!(Id::try_from(testutils::rand::string(255)), Err(_)));
+        assert!(Id::try_from(testutils::rand::string(255)).is_err());
     }
 
     #[test]
     fn test_valid_name() {
-        assert!(matches!(Name::new(testutils::rand::string(255)), Ok(_)));
+        assert!(Name::new(testutils::rand::string(255)).is_ok());
     }
 
     #[test]
     fn test_invalid_name() {
-        assert!(matches!(Name::new(""), Err(_)));
+        assert!(Name::new("").is_err());
     }
 
     #[test]
     fn test_valid_email() {
-        assert!(matches!(Email::new(testutils::rand::email()), Ok(_)));
+        assert!(Email::new(testutils::rand::email()).is_ok());
     }
 
     #[test]
     fn test_invalid_email() {
-        assert!(matches!(Email::new(testutils::rand::string(20)), Err(_)));
+        assert!(Email::new(testutils::rand::string(20)).is_err());
     }
 
     #[test]
     fn test_valid_password() {
-        assert!(matches!(Password::new(testutils::rand::string(255)), Ok(_)));
+        assert!(Password::new(testutils::rand::string(255)).is_ok());
     }
 
     #[test]
     fn test_invalid_password() {
-        assert!(matches!(Password::new(""), Err(_)));
+        assert!(Password::new("").is_err());
     }
 
     #[test]
     fn test_valid_namespace() {
-        assert!(matches!(
-            Namespace::new(testutils::rand::string(255)),
-            Ok(_)
-        ));
+        assert!(Namespace::new(testutils::rand::string(255)).is_ok());
     }
 
     #[test]
     fn test_invalid_namespace() {
-        assert!(matches!(Namespace::new(""), Err(_)));
+        assert!(Namespace::new("").is_err());
     }
 
     #[test]
     fn test_valid_ttl() {
-        assert!(matches!(Ttl::new(testutils::rand::i64(0, 100000)), Ok(_)));
+        assert!(Ttl::new(testutils::rand::i64(0, 100000)).is_ok());
     }
 
     #[test]
     fn test_invalid_ttl() {
-        assert!(matches!(
-            Ttl::new(testutils::rand::i64(-100000, -1)),
-            Err(_)
-        ));
+        assert!(Ttl::new(testutils::rand::i64(-100000, -1)).is_err());
     }
 }

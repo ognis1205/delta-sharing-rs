@@ -1,9 +1,3 @@
-use crate::impl_string_property;
-use crate::impl_uuid_property;
-use crate::server::entities::account::Id as AccountId;
-use crate::server::entities::share::Id as ShareId;
-use crate::server::entities::table::Id as TableId;
-use crate::server::repositories::schema::Repository;
 use anyhow::Result;
 use getset::Getters;
 use getset::Setters;
@@ -12,12 +6,17 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::impl_string_property;
+use crate::impl_uuid_property;
+use crate::server::entities::account::Id as AccountId;
+use crate::server::entities::share::Id as ShareId;
+use crate::server::entities::table::Id as TableId;
+use crate::server::repositories::schema::Repository;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Id {
     value: Uuid,
 }
-
-impl_uuid_property!(Id);
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Name {
@@ -25,6 +24,7 @@ pub struct Name {
     value: String,
 }
 
+impl_uuid_property!(Id);
 impl_string_property!(Name);
 
 #[derive(Debug, Clone, PartialEq, Eq, Getters, Setters)]
@@ -69,21 +69,21 @@ mod tests {
 
     #[test]
     fn test_valid_id() {
-        assert!(matches!(Id::try_from(testutils::rand::uuid()), Ok(_)));
+        assert!(Id::try_from(testutils::rand::uuid()).is_ok());
     }
 
     #[test]
     fn test_invalid_id() {
-        assert!(matches!(Id::try_from(testutils::rand::string(255)), Err(_)));
+        assert!(Id::try_from(testutils::rand::string(255)).is_err());
     }
 
     #[test]
     fn test_valid_name() {
-        assert!(matches!(Name::new(testutils::rand::string(255)), Ok(_)));
+        assert!(Name::new(testutils::rand::string(255)).is_ok());
     }
 
     #[test]
     fn test_invalid_name() {
-        assert!(matches!(Name::new(""), Err(_)));
+        assert!(Name::new("").is_err());
     }
 }
