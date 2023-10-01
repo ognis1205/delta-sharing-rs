@@ -1,8 +1,3 @@
-use crate::impl_string_property;
-use crate::impl_uuid_property;
-use crate::server::entities::account::Id as AccountId;
-use crate::server::middlewares::jwt::Role;
-use crate::server::repositories::token::Repository;
 use anyhow::Result;
 use getset::Getters;
 use getset::Setters;
@@ -11,12 +6,16 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::impl_string_property;
+use crate::impl_uuid_property;
+use crate::server::entities::account::Id as AccountId;
+use crate::server::middlewares::jwt::Role;
+use crate::server::repositories::token::Repository;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Id {
     value: Uuid,
 }
-
-impl_uuid_property!(Id);
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Email {
@@ -24,14 +23,14 @@ pub struct Email {
     value: String,
 }
 
-impl_string_property!(Email);
-
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
 pub struct Value {
     #[validate(length(min = 1))]
     value: String,
 }
 
+impl_uuid_property!(Id);
+impl_string_property!(Email);
 impl_string_property!(Value);
 
 #[derive(Debug, Clone, PartialEq, Eq, Getters, Setters)]
@@ -76,31 +75,31 @@ mod tests {
 
     #[test]
     fn test_valid_id() {
-        assert!(matches!(Id::try_from(testutils::rand::uuid()), Ok(_)));
+        assert!(Id::try_from(testutils::rand::uuid()).is_ok());
     }
 
     #[test]
     fn test_invalid_id() {
-        assert!(matches!(Id::try_from(testutils::rand::string(255)), Err(_)));
+        assert!(Id::try_from(testutils::rand::string(255)).is_err());
     }
 
     #[test]
     fn test_valid_email() {
-        assert!(matches!(Email::new(testutils::rand::email()), Ok(_)));
+        assert!(Email::new(testutils::rand::email()).is_ok());
     }
 
     #[test]
     fn test_invalid_email() {
-        assert!(matches!(Email::new(testutils::rand::string(20)), Err(_)));
+        assert!(Email::new(testutils::rand::string(20)).is_err());
     }
 
     #[test]
     fn test_valid_value() {
-        assert!(matches!(Value::new(testutils::rand::string(255)), Ok(_)));
+        assert!(Value::new(testutils::rand::string(255)).is_ok());
     }
 
     #[test]
     fn test_invalid_value() {
-        assert!(matches!(Value::new(""), Err(_)));
+        assert!(Value::new("").is_err());
     }
 }
