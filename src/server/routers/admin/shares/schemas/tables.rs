@@ -70,7 +70,7 @@ pub async fn post(
     };
     let Some(share) = share else {
         tracing::error!("share was not found");
-	    return Err(Error::BadRequest);
+	    return Err(Error::NotFound);
     };
     let Ok(table) = TableName::new(payload.table) else {
         tracing::error!("requested table data is malformed");
@@ -82,7 +82,7 @@ pub async fn post(
     };
     let Some(table) = table else {
         tracing::error!("table was not found");
-	    return Err(Error::BadRequest);
+	    return Err(Error::NotFound);
     };
     let Ok(schema) = SchemaEntity::new(
         payload.id,
