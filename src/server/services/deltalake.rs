@@ -1,8 +1,3 @@
-use crate::server::utilities::deltalake::Utility as DeltalakeUtility;
-use crate::server::utilities::json::PartitionFilter as JSONPartitionFilter;
-use crate::server::utilities::json::Utility as JSONUtility;
-use crate::server::utilities::sql::PartitionFilter as SQLPartitionFilter;
-use crate::server::utilities::sql::Utility as SQLUtility;
 use anyhow::Result;
 use axum::BoxError;
 use deltalake::action::Add;
@@ -14,6 +9,12 @@ use md5;
 use serde_json::json;
 use std::collections::HashMap;
 use utoipa::ToSchema;
+
+use crate::server::utilities::deltalake::Utility as DeltalakeUtility;
+use crate::server::utilities::json::PartitionFilter as JSONPartitionFilter;
+use crate::server::utilities::json::Utility as JSONUtility;
+use crate::server::utilities::sql::PartitionFilter as SQLPartitionFilter;
+use crate::server::utilities::sql::Utility as SQLUtility;
 
 pub const VERSION: i32 = 1;
 
@@ -274,7 +275,6 @@ impl Service {
 
 #[cfg(test)]
 mod tests {
-    
 
     #[tokio::test]
     async fn test() {

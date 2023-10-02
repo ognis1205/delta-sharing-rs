@@ -1,4 +1,3 @@
-use crate::config;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
@@ -13,6 +12,8 @@ use std::cmp::min;
 use std::collections::hash_map::HashMap;
 use std::fmt;
 use utoipa::ToSchema;
+
+use crate::config;
 
 pub type File = deltalake::action::Add;
 

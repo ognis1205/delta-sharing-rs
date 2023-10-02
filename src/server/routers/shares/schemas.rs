@@ -1,11 +1,5 @@
 pub mod tables;
-use crate::server::entities::schema::Name as SchemaName;
-use crate::server::entities::share::Entity as ShareEntity;
-use crate::server::entities::share::Name as ShareName;
-use crate::server::routers::SharedState;
-use crate::server::services::error::Error;
-use crate::server::services::schema::SchemaDetail;
-use crate::server::services::schema::Service as SchemaService;
+
 use anyhow::anyhow;
 use axum::extract::Extension;
 use axum::extract::Json;
@@ -16,6 +10,14 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use utoipa::IntoParams;
 use utoipa::ToSchema;
+
+use crate::server::entities::schema::Name as SchemaName;
+use crate::server::entities::share::Entity as ShareEntity;
+use crate::server::entities::share::Name as ShareName;
+use crate::server::routers::SharedState;
+use crate::server::services::error::Error;
+use crate::server::services::schema::SchemaDetail;
+use crate::server::services::schema::Service as SchemaService;
 
 const DEFAULT_PAGE_RESULTS: usize = 10;
 

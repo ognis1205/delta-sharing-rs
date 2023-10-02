@@ -1,8 +1,3 @@
-use crate::config::JWT_SECRET;
-use crate::server::entities::account::Entity as AccountEntity;
-use crate::server::entities::account::Name as AccountName;
-use crate::server::routers::SharedState;
-use crate::server::services::error::Error;
 use anyhow::anyhow;
 use axum::headers::authorization::Bearer;
 use axum::headers::Authorization;
@@ -14,6 +9,12 @@ use jsonwebtoken::decode;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Validation;
+
+use crate::config::JWT_SECRET;
+use crate::server::entities::account::Entity as AccountEntity;
+use crate::server::entities::account::Name as AccountName;
+use crate::server::routers::SharedState;
+use crate::server::services::error::Error;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -85,7 +86,7 @@ where
 {
     let Some(auth) = request.headers().typed_get::<Authorization<Bearer>>() else {
         tracing::error!("bearer token is missing");
-	return Err(Error::BadRequest);
+	    return Err(Error::BadRequest);
     };
     let token = auth.token().to_owned();
     let Ok(jwt) = decode::<Claims>(&token, &JWT_SECRET.decoding, &Validation::default()) else {
@@ -98,7 +99,7 @@ where
     };
     let Ok(name) = AccountName::new(jwt.claims.name.clone()) else {
         tracing::error!("JWT claims' account name is malformed");
-	return Err(Error::ValidationFailed);
+	    return Err(Error::ValidationFailed);
     };
     let Ok(account) = AccountEntity::load(&name, &state.pg_pool).await else {
         tracing::error!("request is not handled correctly due to a server error while selecting account");
@@ -106,7 +107,7 @@ where
     };
     let Some(account) = account else {
         tracing::error!("account was not found");
-	return Err(Error::Unauthorized);
+	    return Err(Error::Unauthorized);
     };
     if jwt.claims.role != Role::Admin {
         tracing::error!("request is forbidden from being fulfilled due to the JWT claims' role");
@@ -123,7 +124,7 @@ where
 {
     let Some(auth) = request.headers().typed_get::<Authorization<Bearer>>() else {
         tracing::error!("bearer token is missing");
-	return Err(Error::BadRequest);
+	    return Err(Error::BadRequest);
     };
     let token = auth.token().to_owned();
     let Ok(_) = decode::<Claims>(&token, &JWT_SECRET.decoding, &Validation::default()) else {

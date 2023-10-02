@@ -1,10 +1,7 @@
 pub mod admin;
 pub mod shares;
 pub mod tables;
-use crate::config;
-use crate::server::api_doc::ApiDoc;
-use crate::server::middlewares::jwt;
-use crate::server::services::error::Error;
+
 use anyhow::Context;
 use anyhow::Result;
 use axum::extract::Extension;
@@ -20,6 +17,11 @@ use std::sync::Arc;
 use tame_gcs::signing::ServiceAccount;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+
+use crate::config;
+use crate::server::api_doc::ApiDoc;
+use crate::server::middlewares::jwt;
+use crate::server::services::error::Error;
 
 pub struct State {
     pub pg_pool: PgPool,

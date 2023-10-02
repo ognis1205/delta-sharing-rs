@@ -1,9 +1,10 @@
-use crate::server::utilities::deltalake::Stats;
-use crate::server::utilities::deltalake::ValueType;
 use anyhow::anyhow;
 use anyhow::Result;
 use deltalake::schema::Schema;
 use utoipa::ToSchema;
+
+use crate::server::utilities::deltalake::Stats;
+use crate::server::utilities::deltalake::ValueType;
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize, strum_macros::EnumString, ToSchema,
@@ -119,9 +120,7 @@ impl Utility {
         null_count: &i64,
     ) -> bool {
         match predicate {
-            Predicate::IsNull { .. } => {
-                null_count > &0
-            }
+            Predicate::IsNull { .. } => null_count > &0,
             Predicate::Equal { value, .. } => {
                 // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
                 let Ok(ref value) = value.parse::<T>() else {
@@ -421,12 +420,8 @@ impl Utility {
                     value_type,
                 })
             }
-            OpType::Column => {
-                Err(anyhow!("invalid JSON predicate"))
-            }
-            OpType::Literal => {
-                Err(anyhow!("invalid JSON predicate"))
-            }
+            OpType::Column => Err(anyhow!("invalid JSON predicate")),
+            OpType::Literal => Err(anyhow!("invalid JSON predicate")),
         }
     }
 
@@ -438,9 +433,7 @@ impl Utility {
             Predicate::Or(children) => {
                 return children.iter().any(|c| Self::filter(c, stats, schema));
             }
-            Predicate::Not(child) => {
-                !Self::filter(child, stats, schema)
-            }
+            Predicate::Not(child) => !Self::filter(child, stats, schema),
             Predicate::IsNull { column, value_type }
             | Predicate::Equal {
                 column, value_type, ..
@@ -476,13 +469,9 @@ impl Utility {
                 match (stats.min_values.get(column), stats.max_values.get(column)) {
                     (Some(serde_json::Value::Bool(min)), Some(serde_json::Value::Bool(max))) => {
                         match column_type {
-                            ValueType::Boolean => {
-                                Self::check(predicate, min, max, null_count)
-                            }
+                            ValueType::Boolean => Self::check(predicate, min, max, null_count),
                             // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
-                            _ => {
-                                true
-                            }
+                            _ => true,
                         }
                     }
                     (
@@ -490,16 +479,10 @@ impl Utility {
                         Some(serde_json::Value::String(max)),
                     ) => {
                         match column_type {
-                            ValueType::String => {
-                                Self::check(predicate, min, max, null_count)
-                            }
-                            ValueType::Date => {
-                                Self::check(predicate, min, max, null_count)
-                            }
+                            ValueType::String => Self::check(predicate, min, max, null_count),
+                            ValueType::Date => Self::check(predicate, min, max, null_count),
                             // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
-                            _ => {
-                                true
-                            }
+                            _ => true,
                         }
                     }
                     (
@@ -530,9 +513,7 @@ impl Utility {
                                 Self::check(predicate, min, max, null_count)
                             }
                             // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
-                            _ => {
-                                true
-                            }
+                            _ => true,
                         }
                     }
                     // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
@@ -570,13 +551,7 @@ mod tests {
             value_type: None,
         };
         let predicate = Utility::parse(json).expect("json should be parsed properly");
-        assert_eq!(
-            predicate,
-            Predicate::IsNull {
-                column,
-                value_type
-            }
-        );
+        assert_eq!(predicate, Predicate::IsNull { column, value_type });
         let op = OpType::Equal;
         let column = testutils::rand::string(10);
         let value = testutils::rand::f64(-1.5, 1.5).to_string();

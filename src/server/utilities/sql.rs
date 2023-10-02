@@ -1,10 +1,11 @@
-use crate::server::utilities::deltalake::Stats;
-use crate::server::utilities::deltalake::ValueType;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use deltalake::schema::Schema;
 use std::collections::VecDeque;
+
+use crate::server::utilities::deltalake::Stats;
+use crate::server::utilities::deltalake::ValueType;
 
 static KEYWORDS: &[char] = &[' ', '=', '\'', '\"', '>', '<'];
 
@@ -142,56 +143,32 @@ impl Utility {
 
     fn operator(tokens: &mut Tokens) -> Result<Operator> {
         match tokens.pop_front() {
-            Some(Token::EQ) => {
-                Ok(Operator::Equal)
-            }
-            Some(Token::GT) => {
-                Ok(Operator::GreaterThan)
-            }
-            Some(Token::LT) => {
-                Ok(Operator::LessThan)
-            }
-            Some(Token::GE) => {
-                Ok(Operator::GreaterEqual)
-            }
-            Some(Token::LE) => {
-                Ok(Operator::LessEqual)
-            }
-            Some(Token::NE) => {
-                Ok(Operator::NotEqual)
-            }
+            Some(Token::EQ) => Ok(Operator::Equal),
+            Some(Token::GT) => Ok(Operator::GreaterThan),
+            Some(Token::LT) => Ok(Operator::LessThan),
+            Some(Token::GE) => Ok(Operator::GreaterEqual),
+            Some(Token::LE) => Ok(Operator::LessEqual),
+            Some(Token::NE) => Ok(Operator::NotEqual),
             Some(Token::Key(value)) if value.to_lowercase() == "is" => match tokens.pop_front() {
-                Some(Token::Key(value)) if value.to_lowercase() == "null" => {
-                    Ok(Operator::IsNull)
-                }
+                Some(Token::Key(value)) if value.to_lowercase() == "null" => Ok(Operator::IsNull),
                 Some(Token::Key(value)) if value.to_lowercase() == "not" => {
                     match tokens.pop_front() {
                         Some(Token::Key(value)) if value.to_lowercase() == "null" => {
                             Ok(Operator::IsNotNull)
                         }
-                        _ => {
-                            Err(anyhow!("failed to parse SQL operator"))
-                        }
+                        _ => Err(anyhow!("failed to parse SQL operator")),
                     }
                 }
-                _ => {
-                    Err(anyhow!("failed to parse SQL operator"))
-                }
+                _ => Err(anyhow!("failed to parse SQL operator")),
             },
-            _ => {
-                Err(anyhow!("failed to parse SQL operator"))
-            }
+            _ => Err(anyhow!("failed to parse SQL operator")),
         }
     }
 
     fn value(tokens: &mut Tokens) -> Result<String> {
         match tokens.pop_front() {
-            Some(Token::Key(value)) => {
-                Ok(value)
-            }
-            _ => {
-                Err(anyhow!("failed to parse string"))
-            }
+            Some(Token::Key(value)) => Ok(value),
+            _ => Err(anyhow!("failed to parse string")),
         }
     }
 
@@ -209,12 +186,8 @@ impl Utility {
         null_count: &i64,
     ) -> bool {
         match predicate {
-            Predicate::IsNull => {
-                null_count > &0
-            }
-            Predicate::IsNotNull => {
-                null_count == &0
-            }
+            Predicate::IsNull => null_count > &0,
+            Predicate::IsNotNull => null_count == &0,
             Predicate::Equal(value) => {
                 // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
                 let Ok(ref value) = value.parse::<T>() else {
@@ -290,45 +263,31 @@ impl Utility {
             Self::value(&mut tokens).context("third entry of SQL expression should be value")?;
         Self::end(&mut tokens).context("invalid SQL expression")?;
         match operator {
-            Operator::Equal => {
-                Ok(PartitionFilter {
-                    column,
-                    predicate: Predicate::Equal(value),
-                })
-            }
-            Operator::GreaterThan => {
-                Ok(PartitionFilter {
-                    column,
-                    predicate: Predicate::GreaterThan(value),
-                })
-            }
-            Operator::LessThan => {
-                Ok(PartitionFilter {
-                    column,
-                    predicate: Predicate::LessThan(value),
-                })
-            }
-            Operator::GreaterEqual => {
-                Ok(PartitionFilter {
-                    column,
-                    predicate: Predicate::GreaterEqual(value),
-                })
-            }
-            Operator::LessEqual => {
-                Ok(PartitionFilter {
-                    column,
-                    predicate: Predicate::LessEqual(value),
-                })
-            }
-            Operator::NotEqual => {
-                Ok(PartitionFilter {
-                    column,
-                    predicate: Predicate::NotEqual(value),
-                })
-            }
-            _ => {
-                Err(anyhow!("failed to parse SQL expression"))
-            }
+            Operator::Equal => Ok(PartitionFilter {
+                column,
+                predicate: Predicate::Equal(value),
+            }),
+            Operator::GreaterThan => Ok(PartitionFilter {
+                column,
+                predicate: Predicate::GreaterThan(value),
+            }),
+            Operator::LessThan => Ok(PartitionFilter {
+                column,
+                predicate: Predicate::LessThan(value),
+            }),
+            Operator::GreaterEqual => Ok(PartitionFilter {
+                column,
+                predicate: Predicate::GreaterEqual(value),
+            }),
+            Operator::LessEqual => Ok(PartitionFilter {
+                column,
+                predicate: Predicate::LessEqual(value),
+            }),
+            Operator::NotEqual => Ok(PartitionFilter {
+                column,
+                predicate: Predicate::NotEqual(value),
+            }),
+            _ => Err(anyhow!("failed to parse SQL expression")),
         }
     }
 
@@ -351,27 +310,17 @@ impl Utility {
         ) {
             (Some(serde_json::Value::Bool(min)), Some(serde_json::Value::Bool(max))) => {
                 match column_type {
-                    ValueType::Boolean => {
-                        Self::check(&filter.predicate, min, max, null_count)
-                    }
+                    ValueType::Boolean => Self::check(&filter.predicate, min, max, null_count),
                     // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
-                    _ => {
-                        true
-                    }
+                    _ => true,
                 }
             }
             (Some(serde_json::Value::String(min)), Some(serde_json::Value::String(max))) => {
                 match column_type {
-                    ValueType::String => {
-                        Self::check(&filter.predicate, min, max, null_count)
-                    }
-                    ValueType::Date => {
-                        Self::check(&filter.predicate, min, max, null_count)
-                    }
+                    ValueType::String => Self::check(&filter.predicate, min, max, null_count),
+                    ValueType::Date => Self::check(&filter.predicate, min, max, null_count),
                     // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
-                    _ => {
-                        true
-                    }
+                    _ => true,
                 }
             }
             (Some(serde_json::Value::Number(min)), Some(serde_json::Value::Number(max))) => {
@@ -399,9 +348,7 @@ impl Utility {
                         Self::check(&filter.predicate, min, max, null_count)
                     }
                     // NOTE: The server may try its best to filter files in a BEST EFFORT mode.
-                    _ => {
-                        true
-                    }
+                    _ => true,
                 }
             }
             // NOTE: The server may try its best to filter files in a BEST EFFORT mode.

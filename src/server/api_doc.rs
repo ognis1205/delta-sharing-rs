@@ -1,3 +1,5 @@
+use utoipa::OpenApi;
+
 use crate::server::routers::admin;
 use crate::server::routers::shares;
 use crate::server::services::account;
@@ -8,7 +10,6 @@ use crate::server::services::share;
 use crate::server::services::table;
 use crate::server::utilities::deltalake;
 use crate::server::utilities::json;
-use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(

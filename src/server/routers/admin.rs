@@ -1,6 +1,15 @@
 pub mod accounts;
 pub mod shares;
 pub mod tables;
+
+use anyhow::anyhow;
+use axum::extract::Extension;
+use axum::extract::Json;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::response::Response;
+use utoipa::ToSchema;
+
 use crate::server::entities::account::Entity as AccountEntity;
 use crate::server::entities::account::Name as AccountName;
 use crate::server::entities::token::Entity as TokenEntity;
@@ -10,13 +19,6 @@ use crate::server::services::error::Error;
 use crate::server::services::profile::Profile;
 use crate::server::services::profile::Service as ProfileService;
 use crate::server::utilities::postgres::Utility as PostgresUtility;
-use anyhow::anyhow;
-use axum::extract::Extension;
-use axum::extract::Json;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::response::Response;
-use utoipa::ToSchema;
 
 #[derive(serde::Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
