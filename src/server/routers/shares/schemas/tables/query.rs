@@ -1,19 +1,3 @@
-use crate::config;
-use crate::server::entities::schema::Name as SchemaName;
-use crate::server::entities::share::Name as ShareName;
-use crate::server::entities::table::Name as TableName;
-use crate::server::routers::SharedState;
-use crate::server::services::deltalake::Service as DeltalakeService;
-use crate::server::services::error::Error;
-use crate::server::services::table::Service as TableService;
-use crate::server::utilities::deltalake::Utility as DeltalakeUtility;
-use crate::server::utilities::json::PartitionFilter as JSONPartitionFilter;
-use crate::server::utilities::json::PredicateJson;
-use crate::server::utilities::json::Utility as JSONUtility;
-use crate::server::utilities::signed_url::Platform;
-use crate::server::utilities::signed_url::Utility as SignedUrlUtility;
-use crate::server::utilities::sql::PartitionFilter as SQLPartitionFilter;
-use crate::server::utilities::sql::Utility as SQLUtility;
 use anyhow::anyhow;
 use axum::extract::Extension;
 use axum::extract::Json;
@@ -28,6 +12,23 @@ use axum_extra::json_lines::JsonLines;
 use std::str::FromStr;
 use utoipa::IntoParams;
 use utoipa::ToSchema;
+
+use crate::config;
+use crate::server::entities::schema::Name as SchemaName;
+use crate::server::entities::share::Name as ShareName;
+use crate::server::entities::table::Name as TableName;
+use crate::server::routers::SharedState;
+use crate::server::services::deltalake::Service as DeltalakeService;
+use crate::server::services::error::Error;
+use crate::server::services::table::Service as TableService;
+use crate::server::utilities::deltalake::Utility as DeltalakeUtility;
+use crate::server::utilities::json::PartitionFilter as JSONPartitionFilter;
+use crate::server::utilities::json::PredicateJson;
+use crate::server::utilities::json::Utility as JSONUtility;
+use crate::server::utilities::signed_url::ObjectStore;
+use crate::server::utilities::signed_url::Utility as SignedUrlUtility;
+use crate::server::utilities::sql::PartitionFilter as SQLPartitionFilter;
+use crate::server::utilities::sql::Utility as SQLUtility;
 
 const HEADER_NAME: &str = "Delta-Table-Version";
 
@@ -74,7 +75,7 @@ pub async fn post(
     let predicate_hints = if let Some(predicate_hints) = payload.predicate_hints {
         let predicate_hints: Result<Vec<SQLPartitionFilter>, _> =
             predicate_hints.into_iter().map(SQLUtility::parse).collect();
-        if let Err(_) = predicate_hints {
+        if predicate_hints.is_err() {
             tracing::warn!("requested predicate hints are malformed");
         }
         predicate_hints.ok()
@@ -83,7 +84,7 @@ pub async fn post(
     };
     let json_predicate_hints = if let Some(json_predicate_hints) = payload.json_predicate_hints {
         let predicate = JSONUtility::parse(json_predicate_hints);
-        if let Err(_) = predicate {
+        if predicate.is_err() {
             tracing::warn!("requested predicate hints are malformed");
         }
         predicate.ok()
@@ -126,9 +127,9 @@ pub async fn post(
         tracing::error!("requested table does not exist");
 	    return Err(Error::NotFound);
     };
-    let Ok(platform) = Platform::from_str(&table.location) else {
-        tracing::error!("requested cloud platform is not supported");
-	    return Err(anyhow!("error occured while identifying cloud platform").into());
+    let Ok(object_store) = ObjectStore::from_str(&table.location) else {
+        tracing::error!("requested cloud object store is not supported");
+	    return Err(anyhow!("error occured while identifying cloud object store").into());
     };
     let Ok(mut table) = DeltalakeUtility::open_table(&table.location).await else {
         tracing::error!("request is not handled correctly due to a server error while loading delta table");
@@ -158,8 +159,8 @@ pub async fn post(
 	    };
         metadata.to_owned()
     };
-    let url_signer = |name: String| match &platform {
-        Platform::AWS { url, bucket, path } => {
+    let url_signer = |name: String| match &object_store {
+        ObjectStore::S3 { url, bucket, path } => {
             if let Some(aws_credentials) = &state.aws_credentials {
                 let file: String = format!("{}/{}", path, name);
                 let Ok(signed) = SignedUrlUtility::sign_aws(
@@ -176,7 +177,7 @@ pub async fn post(
             tracing::warn!("AWS credentials were not set");
             url.clone()
         }
-        Platform::GCP { url, bucket, path } => {
+        ObjectStore::Gcs { url, bucket, path } => {
             if let Some(gcp_service_account) = &state.gcp_service_account {
                 let file: String = format!("{}/{}", path, name);
                 let Ok(signed) = SignedUrlUtility::sign_gcp(
@@ -193,8 +194,8 @@ pub async fn post(
             tracing::warn!("GCP service account was not set");
             url.clone()
         }
-        Platform::NONE { url } => {
-            tracing::warn!("no supported platforms");
+        ObjectStore::NotAvailable { url } => {
+            tracing::warn!("no supported object store");
             url.clone()
         }
     };
