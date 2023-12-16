@@ -58,7 +58,7 @@ fn new_aud(provider: String) -> Result<(String, Vec<String>)> {
         config::fetch::<String>("server_addr"),
         provider
     );
-    Ok((endpoint.clone(), vec![endpoint.clone()]))
+    Ok((endpoint.clone(), vec![endpoint]))
 }
 
 #[inline]
@@ -91,7 +91,7 @@ impl Service {
         let token = self::new_token(iss, sub, aud, jti, exp).context("profile creation failed")?;
         Ok(Profile {
             share_credentials_version: VERSION,
-            endpoint: endpoint,
+            endpoint,
             bearer_token: token,
             expiration_time: exp_datetime.to_string(),
         })

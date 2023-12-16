@@ -113,7 +113,7 @@ async fn route(
             post(self::sharing::shares::schemas::tables::query::post),
         )
         .route_layer(middleware::from_fn(jwt::as_sharing))
-        .layer(Extension(state.clone()))
+        .layer(Extension(state))
         .layer(
             CorsLayer::new()
                 .allow_origin(
