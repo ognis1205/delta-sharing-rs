@@ -78,7 +78,7 @@ where
         provider
     );
     validation.set_audience(&[aud]);
-    let Ok(token) = decode::<Claims>(&token, &JWT_SECRET.decoding, &Validation::default()) else {
+    let Ok(token) = decode::<Claims>(&token, &JWT_SECRET.decoding, &validation) else {
         tracing::error!("bearer token validation failed");
         return Err(Error::Unauthorized)?;
     };
