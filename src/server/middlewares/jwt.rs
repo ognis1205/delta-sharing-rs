@@ -1,9 +1,5 @@
-use crate::config::JWT_SECRET;
-use crate::server::entities::account::Entity as AccountEntity;
-use crate::server::entities::account::Name as AccountName;
-use crate::server::routers::SharedState;
-use crate::server::services::error::Error;
 use anyhow::anyhow;
+use axum::extract::Path;
 use axum::headers::authorization::Bearer;
 use axum::headers::Authorization;
 use axum::headers::HeaderMapExt;
@@ -15,50 +11,21 @@ use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Validation;
 
+use crate::config;
+use crate::config::JWT_SECRET;
+use crate::server::entities::account::Entity as AccountEntity;
+use crate::server::entities::account::Name as AccountName;
+use crate::server::routers::SharedState;
+use crate::server::services::error::Error;
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Claims {
-    pub name: String,
-    pub email: String,
-    pub namespace: String,
-    pub role: Role,
-    pub exp: i64,
-}
-
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    serde::Serialize,
-    serde::Deserialize,
-    sqlx::Type,
-    strum_macros::EnumString,
-)]
-#[serde(rename_all = "lowercase")]
-#[sqlx(rename_all = "lowercase")]
-#[sqlx(type_name = "VARCHAR")]
-pub enum Role {
-    #[strum(ascii_case_insensitive)]
-    Admin,
-    #[strum(ascii_case_insensitive)]
-    Guest,
-}
-
-impl AsRef<str> for Role {
-    fn as_ref(&self) -> &str {
-        match self {
-            Role::Admin => "admin",
-            Role::Guest => "guest",
-        }
-    }
-}
-
-impl std::fmt::Display for Role {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
+    pub iss: String,      // Issuer, e.g., "https://foobar.org"
+    pub sub: String,      // Subject (Delta Sharing Recipient), e.g., "john"
+    pub aud: Vec<String>, // Audience (Delta Sharing Provider's Tenant), e.g., ["https://foobar.org/sharing/jane"]
+    pub jti: String,      // JWT ID
+    pub exp: i64,         // Expiration
 }
 
 pub struct Keys {
@@ -76,8 +43,22 @@ impl Keys {
 }
 
 #[tracing::instrument(skip(next))]
-pub async fn as_admin<T>(
-    mut request: Request<T>,
+pub async fn as_catalog<T>(
+    Path(provider): Path<String>,
+    request: Request<T>,
+    next: Next<T>,
+) -> std::result::Result<Response, Error>
+where
+    T: std::fmt::Debug,
+{
+    tracing::debug!("authentication/authorization must be handled in the frontend properly");
+    Ok(next.run(request).await)
+}
+
+#[tracing::instrument(skip(next))]
+pub async fn as_sharing<T>(
+    Path(provider): Path<String>,
+    request: Request<T>,
     next: Next<T>,
 ) -> std::result::Result<Response, Error>
 where
@@ -88,9 +69,18 @@ where
         return Err(Error::BadRequest);
     };
     let token = auth.token().to_owned();
-    let Ok(jwt) = decode::<Claims>(&token, &JWT_SECRET.decoding, &Validation::default()) else {
-        tracing::error!("bearer token cannot be decoded");
-        return Err(Error::Unauthorized);
+    let mut validation = Validation::default();
+    let iss = config::fetch::<String>("server_addr");
+    validation.set_issuer(&[iss]);
+    let aud = format!(
+        "{}/sharing/{}",
+        config::fetch::<String>("server_addr"),
+        provider
+    );
+    validation.set_audience(&[aud]);
+    let Ok(token) = decode::<Claims>(&token, &JWT_SECRET.decoding, &Validation::default()) else {
+        tracing::error!("bearer token validation failed");
+        return Err(Error::Unauthorized)?;
     };
     let Some(state) = request.extensions().get::<SharedState>() else {
         tracing::error!(
@@ -98,41 +88,15 @@ where
         );
         return Err(anyhow!("failed to acquire shared state").into());
     };
-    let Ok(name) = AccountName::new(jwt.claims.name.clone()) else {
-        tracing::error!("JWT claims' account name is malformed");
+    let Ok(recipient) = AccountName::new(token.claims.sub.clone()) else {
+        tracing::error!("JWT claims' recipient name is malformed");
         return Err(Error::ValidationFailed);
     };
-    let Ok(account) = AccountEntity::load(&name, &state.pg_pool).await else {
+    let Ok(_) = AccountEntity::load_by_name(&recipient, &state.pg_pool).await else {
         tracing::error!(
-            "request is not handled correctly due to a server error while selecting account"
+            "request is not handled correctly due to a server error while selecting recipient"
         );
-        return Err(anyhow!("error occurred while selecting account from database").into());
-    };
-    let Some(account) = account else {
-        tracing::error!("account was not found");
-        return Err(Error::Unauthorized);
-    };
-    if jwt.claims.role != Role::Admin {
-        tracing::error!("request is forbidden from being fulfilled due to the JWT claims' role");
-        return Err(Error::Forbidden);
-    }
-    request.extensions_mut().insert(account);
-    Ok(next.run(request).await)
-}
-
-#[tracing::instrument(skip(next))]
-pub async fn as_guest<T>(request: Request<T>, next: Next<T>) -> std::result::Result<Response, Error>
-where
-    T: std::fmt::Debug,
-{
-    let Some(auth) = request.headers().typed_get::<Authorization<Bearer>>() else {
-        tracing::error!("bearer token is missing");
-        return Err(Error::BadRequest);
-    };
-    let token = auth.token().to_owned();
-    let Ok(_) = decode::<Claims>(&token, &JWT_SECRET.decoding, &Validation::default()) else {
-        tracing::error!("bearer token cannot be decoded");
-        return Err(Error::Unauthorized)?;
+        return Err(anyhow!("error occurred while selecting recipient from database").into());
     };
     Ok(next.run(request).await)
 }

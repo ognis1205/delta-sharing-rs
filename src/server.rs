@@ -15,7 +15,6 @@ use tame_gcs::signing::ServiceAccount;
 
 use crate::bootstrap;
 
-pub use crate::server::middlewares::jwt::Role;
 pub use entities::account::{Entity as AccountEntity, Id as AccountId};
 pub use entities::schema::{Entity as SchemaEntity, Id as SchemaId};
 pub use entities::share::{Entity as ShareEntity, Id as ShareId};

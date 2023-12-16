@@ -14,7 +14,6 @@ use utoipa::ToSchema;
 use crate::config;
 use crate::config::JWT_SECRET;
 use crate::server::middlewares::jwt::Claims;
-use crate::server::middlewares::jwt::Role;
 
 pub const VERSION: i32 = 1;
 
@@ -29,57 +28,72 @@ pub struct Profile {
 
 pub struct Service;
 
-fn new_token(
-    name: String,
-    email: String,
-    namespace: String,
-    role: Role,
-    expiry: i64,
-) -> Result<String> {
+fn new_token(iss: String, sub: String, aud: Vec<String>, jti: String, exp: i64) -> Result<String> {
     let claims = Claims {
-        name,
-        email,
-        namespace,
-        role,
-        exp: expiry,
+        iss,
+        sub,
+        aud,
+        jti,
+        exp,
     };
     let token = encode(&Header::default(), &claims, &JWT_SECRET.encoding)
         .context("failed to create JWT token")?;
     Ok(token)
 }
 
-fn new_expiration(ttl: i64) -> Result<(i64, DateTime<Utc>)> {
+#[inline]
+fn new_iss() -> Result<String> {
+    Ok(config::fetch::<String>("server_addr"))
+}
+
+#[inline]
+fn new_sub(recipient: String) -> Result<String> {
+    Ok(recipient)
+}
+
+#[inline]
+fn new_aud(provider: String) -> Result<(String, Vec<String>)> {
+    let endpoint = format!(
+        "{}/sharing/{}",
+        config::fetch::<String>("server_addr"),
+        provider
+    );
+    Ok((endpoint.clone(), vec![endpoint.clone()]))
+}
+
+#[inline]
+fn new_jti(id: String) -> Result<String> {
+    Ok(id)
+}
+
+fn new_exp(ttl: i64) -> Result<(i64, DateTime<Utc>)> {
     let ttl = u64::try_from(ttl).context("failed to convert i64 ttl to u64")?;
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .context("failed to create current system time")?;
-    let expiration_secs = now + Duration::from_secs(ttl);
-    let expiration_secs = expiration_secs.as_secs();
-    let expiration_secs = i64::try_from(expiration_secs)
-        .context("failed to convert u128 expiration seconds to i64")?;
-    let expiration_time = NaiveDateTime::from_timestamp_opt(expiration_secs, 0)
+    let exp = now + Duration::from_secs(ttl);
+    let exp = exp.as_secs();
+    let exp = i64::try_from(exp).context("failed to convert u128 expiration seconds to i64")?;
+    let exp_datetime = NaiveDateTime::from_timestamp_opt(exp, 0)
         .context("faield to parse expiration seconds to datetime")?;
-    let expiration_time = DateTime::<Utc>::from_utc(expiration_time, Utc);
-    Ok((expiration_secs, expiration_time))
+    let exp_datetime = DateTime::<Utc>::from_utc(exp_datetime, Utc);
+    Ok((exp, exp_datetime))
 }
 
 impl Service {
-    pub fn issue(
-        name: String,
-        email: String,
-        namespace: String,
-        role: Role,
-        ttl: i64,
-    ) -> Result<Profile> {
-        let (expiration_secs, expiration_time) =
-            self::new_expiration(ttl).context("expiration time calculation failed")?;
-        let token = self::new_token(name, email, namespace, role, expiration_secs)
-            .context("profile creation failed")?;
+    pub fn issue(id: String, provider: String, recipient: String, ttl: i64) -> Result<Profile> {
+        let iss = self::new_iss().context("failed to create issuer")?;
+        let sub = self::new_sub(recipient).context("failed to create subject")?;
+        let (endpoint, aud) = self::new_aud(provider).context("failed to create audience")?;
+        let jti = self::new_jti(id).context("failed to create subject")?;
+        let (exp, exp_datetime) =
+            self::new_exp(ttl).context("expiration time calculation failed")?;
+        let token = self::new_token(iss, sub, aud, jti, exp).context("profile creation failed")?;
         Ok(Profile {
             share_credentials_version: VERSION,
-            endpoint: config::fetch::<String>("server_addr"),
+            endpoint: endpoint,
             bearer_token: token,
-            expiration_time: expiration_time.to_string(),
+            expiration_time: exp_datetime.to_string(),
         })
     }
 }
@@ -90,21 +104,16 @@ mod tests {
     use crate::config::JWT_SECRET;
     use jsonwebtoken::decode;
     use jsonwebtoken::Validation;
-    use std::str::FromStr;
     use std::thread::sleep;
     use std::time::Duration;
 
     //#[test]
     fn test_expired_profile() -> Result<()> {
-        let roles = vec!["Admin", "Guest"];
-        let role = testutils::rand::choose(&roles);
-        let role = Role::from_str(role).context("failed to choose role")?;
         let two_mins = Duration::from_millis(120000);
         let profile = Service::issue(
             testutils::rand::string(10),
             testutils::rand::string(10),
             testutils::rand::string(10),
-            role,
             0,
         )
         .expect("profile should be issued properly");
@@ -121,14 +130,10 @@ mod tests {
 
     #[test]
     fn test_unexpired_profile() -> Result<()> {
-        let roles = vec!["Admin", "Guest"];
-        let role = testutils::rand::choose(&roles);
-        let role = Role::from_str(role).context("failed to choose role")?;
         let profile = Service::issue(
             testutils::rand::string(10),
             testutils::rand::string(10),
             testutils::rand::string(10),
-            role,
             testutils::rand::i64(100000, 1000000),
         )
         .expect("profile should be issued properly");

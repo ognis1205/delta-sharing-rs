@@ -68,7 +68,7 @@ pub async fn list(
         tracing::error!("requested share data is malformed");
         return Err(Error::ValidationFailed);
     };
-    let Ok(share) = ShareEntity::load(&share, &state.pg_pool).await else {
+    let Ok(share) = ShareEntity::load_by_name(&share, &state.pg_pool).await else {
         tracing::error!(
             "request is not handled correctly due to a server error while selecting share"
         );

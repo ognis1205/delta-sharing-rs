@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TABLE IF NOT EXISTS account (
     id UUID PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE,

@@ -177,11 +177,6 @@ mod tests {
         assert!(config.get::<String>("db_url").is_ok());
         assert!(config.get::<String>("server_addr").is_ok());
         assert!(config.get::<String>("server_bind").is_ok());
-        assert!(config.get::<String>("admin_name").is_ok());
-        assert!(config.get::<String>("admin_email").is_ok());
-        assert!(config.get::<String>("admin_password").is_ok());
-        assert!(config.get::<String>("admin_namespace").is_ok());
-        assert!(config.get::<i64>("admin_ttl").is_ok());
         assert!(config.get::<String>("jwt_secret").is_ok());
         assert!(config.get::<String>("use_json_log").is_ok());
         assert!(config.get::<String>("log_filter").is_ok());

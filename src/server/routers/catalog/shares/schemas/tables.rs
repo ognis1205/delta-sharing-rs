@@ -66,7 +66,7 @@ pub async fn post(
         tracing::error!("requested share data is malformed");
         return Err(Error::ValidationFailed);
     };
-    let Ok(maybe_share) = ShareEntity::load(&share_name, &state.pg_pool).await else {
+    let Ok(maybe_share) = ShareEntity::load_by_name(&share_name, &state.pg_pool).await else {
         tracing::error!(
             "request is not handled correctly due to a server error while selecting share"
         );
@@ -80,7 +80,7 @@ pub async fn post(
         tracing::error!("requested share data is malformed");
         return Err(Error::ValidationFailed);
     };
-    let Ok(maybe_schema) = SchemaEntity::load(share.id(), &schema_name, &state.pg_pool).await
+    let Ok(maybe_schema) = SchemaEntity::load_by_name(share.id(), &schema_name, &state.pg_pool).await
     else {
         tracing::error!(
             "request is not handled correctly due to a server error while selecting share"

@@ -5,6 +5,8 @@ use uuid::Uuid;
 
 static CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
+static ALPHABETS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
 pub fn i32(lower: i32, upper: i32) -> i32 {
     let mut rng = rand::thread_rng();
     rng.gen_range(lower..upper)
@@ -54,6 +56,17 @@ pub fn bytes(length: usize) -> Vec<u8> {
     (0..length).map(|_| rand::random::<u8>()).collect()
 }
 
+pub fn letters(length: usize) -> String {
+    let mut rng = rand::thread_rng();
+    let ret: String = (0..length)
+        .map(|_| {
+            let idx = rng.gen_range(0..ALPHABETS.len());
+            CHARSET[idx] as char
+        })
+        .collect();
+    ret
+}
+
 pub fn now() -> NaiveDateTime {
     Utc::now().naive_utc()
 }
@@ -75,7 +88,7 @@ pub fn ip() -> String {
 }
 
 pub fn url() -> String {
-    format!("{}://{}:{}", string(5), string(10), port())
+    format!("{}://{}:{}", letters(5), letters(10), port())
 }
 
 pub fn email() -> String {

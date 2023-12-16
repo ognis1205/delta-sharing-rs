@@ -13,11 +13,8 @@ use utoipa::OpenApi;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        catalog::login,
-        catalog::profile,
-        catalog::accounts::post,
-        catalog::accounts::get,
-        catalog::accounts::list,
+        catalog::login::post,
+        catalog::profile::post,
         catalog::shares::post,
         catalog::shares::schemas::post,
         catalog::shares::schemas::tables::post,
@@ -44,10 +41,8 @@ use utoipa::OpenApi;
 	    json::OpType,
 	    json::PredicateJson
 	),
-        schemas(catalog::CatalogLoginRequest, catalog::CatalogLoginResponse, catalog::CatalogProfileResponse),
-        schemas(catalog::accounts::CatalogAccountsPostRequest, catalog::accounts::CatalogAccountsPostResponse),
-        schemas(catalog::accounts::CatalogAccountsGetResponse),
-        schemas(catalog::accounts::CatalogAccountsListResponse),
+        schemas(catalog::login::CatalogLoginPostRequest, catalog::login::CatalogLoginPostResponse),
+        schemas(catalog::profile::CatalogProfilePostRequest, catalog::profile::CatalogProfileResponse),
         schemas(catalog::shares::CatalogSharesPostRequest, catalog::shares::CatalogSharesPostResponse),
         schemas(catalog::shares::schemas::CatalogSharesSchemasPostRequest, catalog::shares::schemas::CatalogSharesSchemasPostResponse),
         schemas(catalog::shares::schemas::tables::CatalogSharesSchemasTablesPostRequest, catalog::shares::schemas::tables::CatalogSharesSchemasTablesPostResponse),

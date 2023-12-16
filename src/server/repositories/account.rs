@@ -5,6 +5,7 @@ use chrono::Utc;
 use sqlx::postgres::PgQueryResult;
 use uuid::Uuid;
 
+use crate::server::entities::account::Email;
 use crate::server::entities::account::Entity;
 use crate::server::entities::account::Name;
 use crate::server::utilities::postgres::PgAcquire;
@@ -14,9 +15,10 @@ pub struct Row {
     pub id: Uuid,
     pub name: String,
     pub email: String,
-    pub password: String,
-    pub namespace: String,
-    pub ttl: i64,
+    pub image: String,
+    pub social_platform: String,
+    pub social_id: String,
+    pub social_name: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -34,24 +36,27 @@ impl Repository {
                  id,
                  name,
                  email,
-                 password,
-                 namespace,
-                 ttl
-             ) VALUES ($1, $2, $3, $4, $5, $6)
+                 image,
+                 social_platform,
+                 social_id,
+                 social_name
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
              ON CONFLICT(id)
              DO UPDATE
              SET name = $2,
                  email = $3,
-                 password = $4,
-                 namespace = $5,
-                 ttl = $6",
+                 image = $4,
+                 social_platform = $5,
+                 social_id = $6,
+                 social_name = $7",
         )
         .bind(account.id())
         .bind(account.name())
         .bind(account.email())
-        .bind(account.password())
-        .bind(account.namespace())
-        .bind(account.ttl())
+        .bind(account.image())
+        .bind(account.social_platform())
+        .bind(account.social_id())
+        .bind(account.social_name())
         .execute(&mut *conn)
         .await
         .context(format!(
@@ -70,9 +75,10 @@ impl Repository {
                  id,
                  name,
                  email,
-                 password,
-                 namespace,
-                 ttl,
+                 image,
+                 social_platform,
+                 social_id,
+                 social_name,
                  created_at,
                  updated_at
              FROM account
@@ -84,6 +90,38 @@ impl Repository {
         .context(format!(
             r#"failed to select "{}" from [account]"#,
             name.as_str()
+        ))?;
+        Ok(row)
+    }
+
+    pub async fn select_by_email(
+        email: &Email,
+        executor: impl PgAcquire<'_>,
+    ) -> Result<Option<Row>> {
+        let mut conn = executor
+            .acquire()
+            .await
+            .context("failed to acquire postgres connection")?;
+        let row: Option<Row> = sqlx::query_as::<_, Row>(
+            "SELECT
+                 id,
+                 name,
+                 email,
+                 image,
+                 social_platform,
+                 social_id,
+                 social_name,
+                 created_at,
+                 updated_at
+             FROM account
+             WHERE email = $1",
+        )
+        .bind(email)
+        .fetch_optional(&mut *conn)
+        .await
+        .context(format!(
+            r#"failed to select "{}" from [account]"#,
+            email.as_str()
         ))?;
         Ok(row)
     }

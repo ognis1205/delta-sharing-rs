@@ -53,7 +53,11 @@ impl Entity {
         })
     }
 
-    pub async fn load(share_id: &ShareId, name: &Name, pg_pool: &PgPool) -> Result<Option<Self>> {
+    pub async fn load_by_name(
+        share_id: &ShareId,
+        name: &Name,
+        pg_pool: &PgPool,
+    ) -> Result<Option<Self>> {
         match Repository::select_by_name(share_id, name, pg_pool).await? {
             Some(row) => Ok(Self {
                 id: Id::new(row.id),

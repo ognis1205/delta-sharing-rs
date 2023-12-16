@@ -64,7 +64,11 @@ impl Entity {
         })
     }
 
-    pub async fn load(schema_id: &SchemaId, name: &Name, pg_pool: &PgPool) -> Result<Option<Self>> {
+    pub async fn load_by_name(
+        schema_id: &SchemaId,
+        name: &Name,
+        pg_pool: &PgPool,
+    ) -> Result<Option<Self>> {
         match Repository::select_by_name(schema_id, name, pg_pool).await? {
             Some(row) => Ok(Self {
                 id: Id::new(row.id),

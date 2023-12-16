@@ -1,11 +1,4 @@
-use anyhow::anyhow;
 use anyhow::Result;
-use argon2::password_hash::rand_core::OsRng;
-use argon2::password_hash::PasswordHash;
-use argon2::password_hash::PasswordHasher;
-use argon2::password_hash::PasswordVerifier;
-use argon2::password_hash::SaltString;
-use argon2::Argon2;
 use getset::Getters;
 use getset::Setters;
 use sqlx::postgres::PgQueryResult;
@@ -13,7 +6,6 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::impl_i64_property;
 use crate::impl_string_property;
 use crate::impl_uuid_property;
 use crate::server::repositories::account::Repository;
@@ -36,29 +28,36 @@ pub struct Email {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
-pub struct Password {
+pub struct Image {
+    #[validate(url)]
+    value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Validate)]
+pub struct SocialPlatform {
     #[validate(length(min = 1))]
     value: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
-pub struct Namespace {
+pub struct SocialId {
     #[validate(length(min = 1))]
     value: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Validate)]
-pub struct Ttl {
-    #[validate(range(min = 0))]
-    value: i64,
+pub struct SocialName {
+    #[validate(length(min = 1))]
+    value: String,
 }
 
 impl_uuid_property!(Id);
 impl_string_property!(Name);
 impl_string_property!(Email);
-impl_string_property!(Password);
-impl_string_property!(Namespace);
-impl_i64_property!(Ttl);
+impl_string_property!(Image);
+impl_string_property!(SocialPlatform);
+impl_string_property!(SocialId);
+impl_string_property!(SocialName);
 
 #[derive(Debug, Clone, PartialEq, Eq, Getters, Setters)]
 pub struct Entity {
@@ -69,27 +68,13 @@ pub struct Entity {
     #[getset(get = "pub", set = "pub")]
     email: Email,
     #[getset(get = "pub", set = "pub")]
-    password: Password,
+    image: Image,
     #[getset(get = "pub", set = "pub")]
-    namespace: Namespace,
+    social_platform: SocialPlatform,
     #[getset(get = "pub", set = "pub")]
-    ttl: Ttl,
-}
-
-fn hash(password: &[u8]) -> Result<String> {
-    let salt = SaltString::generate(&mut OsRng);
-    let hashed = Argon2::default()
-        .hash_password(password, &salt)
-        .map_err(|_| anyhow!("falield to hash password"))?;
-    Ok(hashed.to_string())
-}
-
-fn verify(password: &[u8], hash: &str) -> Result<()> {
-    let parsed =
-        PasswordHash::new(hash).map_err(|_| anyhow!("falield to parse hashed password"))?;
-    Argon2::default()
-        .verify_password(password, &parsed)
-        .map_err(|_| anyhow!("falield to verify password"))
+    social_id: SocialId,
+    #[getset(get = "pub", set = "pub")]
+    social_name: SocialName,
 }
 
 impl Entity {
@@ -97,29 +82,48 @@ impl Entity {
         id: impl Into<Option<String>>,
         name: String,
         email: String,
-        password: String,
-        namespace: String,
-        ttl: i64,
+        image: String,
+        social_platform: String,
+        social_id: String,
+        social_name: String,
     ) -> Result<Self> {
         Ok(Self {
             id: Id::try_from(id.into().unwrap_or(uuid::Uuid::new_v4().to_string()))?,
             name: Name::new(name)?,
             email: Email::new(email)?,
-            password: Password::new(self::hash(password.as_bytes()).unwrap())?,
-            namespace: Namespace::new(namespace)?,
-            ttl: Ttl::new(ttl)?,
+            image: Image::new(image)?,
+            social_platform: SocialPlatform::new(social_platform)?,
+            social_id: SocialId::new(social_id)?,
+            social_name: SocialName::new(social_name)?,
         })
     }
 
-    pub async fn load(name: &Name, pg_pool: &PgPool) -> Result<Option<Self>> {
+    pub async fn load_by_name(name: &Name, pg_pool: &PgPool) -> Result<Option<Self>> {
         match Repository::select_by_name(name, pg_pool).await? {
             Some(row) => Ok(Self {
                 id: Id::new(row.id),
                 name: Name::new(row.name)?,
                 email: Email::new(row.email)?,
-                password: Password::new(row.password)?,
-                namespace: Namespace::new(row.namespace)?,
-                ttl: Ttl::new(row.ttl)?,
+                image: Image::new(row.image)?,
+                social_platform: SocialPlatform::new(row.social_platform)?,
+                social_id: SocialId::new(row.social_id)?,
+                social_name: SocialName::new(row.social_name)?,
+            }
+            .into()),
+            _ => Ok(None),
+        }
+    }
+
+    pub async fn load_by_email(email: &Email, pg_pool: &PgPool) -> Result<Option<Self>> {
+        match Repository::select_by_email(email, pg_pool).await? {
+            Some(row) => Ok(Self {
+                id: Id::new(row.id),
+                name: Name::new(row.name)?,
+                email: Email::new(row.email)?,
+                image: Image::new(row.image)?,
+                social_platform: SocialPlatform::new(row.social_platform)?,
+                social_id: SocialId::new(row.social_id)?,
+                social_name: SocialName::new(row.social_name)?,
             }
             .into()),
             _ => Ok(None),
@@ -128,10 +132,6 @@ impl Entity {
 
     pub async fn save(&self, pg_pool: &PgPool) -> Result<PgQueryResult> {
         Repository::upsert(self, pg_pool).await
-    }
-
-    pub fn verify(&self, password: &[u8]) -> Result<()> {
-        self::verify(password, self.password().as_str())
     }
 }
 
@@ -170,32 +170,42 @@ mod tests {
     }
 
     #[test]
-    fn test_valid_password() {
-        assert!(Password::new(testutils::rand::string(255)).is_ok());
+    fn test_valid_image() {
+        assert!(Image::new(testutils::rand::url()).is_ok());
     }
 
     #[test]
-    fn test_invalid_password() {
-        assert!(Password::new("").is_err());
+    fn test_invalid_image() {
+        assert!(Image::new(testutils::rand::string(20)).is_err());
     }
 
     #[test]
-    fn test_valid_namespace() {
-        assert!(Namespace::new(testutils::rand::string(255)).is_ok());
+    fn test_valid_social_platform() {
+        assert!(SocialPlatform::new(testutils::rand::string(255)).is_ok());
     }
 
     #[test]
-    fn test_invalid_namespace() {
-        assert!(Namespace::new("").is_err());
+    fn test_invalid_social_platform() {
+        assert!(SocialPlatform::new("").is_err());
     }
 
     #[test]
-    fn test_valid_ttl() {
-        assert!(Ttl::new(testutils::rand::i64(0, 100000)).is_ok());
+    fn test_valid_social_id() {
+        assert!(SocialId::new(testutils::rand::string(255)).is_ok());
     }
 
     #[test]
-    fn test_invalid_ttl() {
-        assert!(Ttl::new(testutils::rand::i64(-100000, -1)).is_err());
+    fn test_invalid_social_id() {
+        assert!(SocialId::new("").is_err());
+    }
+
+    #[test]
+    fn test_valid_social_name() {
+        assert!(SocialName::new(testutils::rand::string(255)).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_social_name() {
+        assert!(SocialName::new("").is_err());
     }
 }
