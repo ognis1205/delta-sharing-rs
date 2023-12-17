@@ -19,7 +19,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::config;
 use crate::server::api_doc::ApiDoc;
-use crate::server::middlewares::jwt;
+use crate::server::middlewares::auth;
 use crate::server::services::error::Error;
 
 pub struct State {
@@ -64,7 +64,7 @@ async fn route(
             "/catalog/:provider/shares/:share/schemas/:schema/tables",
             post(self::catalog::shares::schemas::tables::post),
         )
-        .route_layer(middleware::from_fn(jwt::as_catalog))
+        .route_layer(middleware::from_fn(auth::as_catalog))
         .route("/catalog/login", post(self::catalog::login::post))
         .layer(Extension(state.clone()))
         .layer(
@@ -112,7 +112,7 @@ async fn route(
             "/sharing/:provider/shares/:share/schemas/:schema/tables/:table/query",
             post(self::sharing::shares::schemas::tables::query::post),
         )
-        .route_layer(middleware::from_fn(jwt::as_sharing))
+        .route_layer(middleware::from_fn(auth::as_sharing))
         .layer(Extension(state))
         .layer(
             CorsLayer::new()

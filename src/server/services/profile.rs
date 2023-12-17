@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 
 use crate::config;
 use crate::config::JWT_SECRET;
-use crate::server::middlewares::jwt::Claims;
+use crate::server::middlewares::auth::Claims;
 
 pub const VERSION: i32 = 1;
 
