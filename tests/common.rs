@@ -1,10 +1,7 @@
-use std::str::FromStr;
-
 use anyhow::Context;
 use anyhow::Result;
 use sqlx::PgConnection;
 
-use delta_sharing::server::Role;
 use delta_sharing::server::{AccountEntity, AccountId, AccountRepository};
 use delta_sharing::server::{SchemaEntity, SchemaId, SchemaRepository};
 use delta_sharing::server::{ShareEntity, ShareId, ShareRepository};
@@ -16,9 +13,10 @@ pub async fn create_account(tx: &mut PgConnection) -> Result<AccountEntity> {
         testutils::rand::uuid(),
         testutils::rand::string(10),
         testutils::rand::email(),
+        testutils::rand::url(),
         testutils::rand::string(10),
         testutils::rand::string(10),
-        testutils::rand::i64(1, 100000),
+        testutils::rand::string(10),
     )
     .context("failed to validate account")?;
     AccountRepository::upsert(&account, tx)
@@ -27,16 +25,19 @@ pub async fn create_account(tx: &mut PgConnection) -> Result<AccountEntity> {
     Ok(account)
 }
 
-pub async fn create_token(account_id: &AccountId, tx: &mut PgConnection) -> Result<TokenEntity> {
-    let roles = vec!["Admin", "Guest"];
-    let role = testutils::rand::choose(&roles);
-    let role = Role::from_str(role).context("failed to choose role")?;
+pub async fn create_token(
+    provider_id: &AccountId,
+    recipient_id: &AccountId,
+    tx: &mut PgConnection,
+) -> Result<TokenEntity> {
+    let actives = vec![true, false];
+    let active = *testutils::rand::choose(&actives);
     let token = TokenEntity::new(
         testutils::rand::uuid(),
-        testutils::rand::email(),
-        role,
         testutils::rand::string(10),
-        account_id.to_uuid().to_string(),
+        active,
+        provider_id.to_uuid().to_string(),
+        recipient_id.to_uuid().to_string(),
     )
     .context("failed to validate token")?;
     TokenRepository::upsert(&token, tx)

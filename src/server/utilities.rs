@@ -4,3 +4,4 @@ pub mod json;
 pub mod postgres;
 pub mod signed_url;
 pub mod sql;
+pub mod token;

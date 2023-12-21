@@ -75,7 +75,7 @@ pub async fn post(
     let predicate_hints = if let Some(predicate_hints) = payload.predicate_hints {
         let predicate_hints: Result<Vec<SQLPartitionFilter>, _> = predicate_hints
             .into_iter()
-            .map(|p| SQLUtility::parse(p.to_owned()))
+            .map(SQLUtility::parse)
             .collect();
         if predicate_hints.is_err() {
             tracing::warn!("requested predicate hints are malformed");

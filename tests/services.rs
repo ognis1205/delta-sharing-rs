@@ -74,11 +74,66 @@ async fn test_account_create_and_query_by_name(pool: PgPool) -> Result<()> {
     if let Some(fetched) = fetched {
         assert_eq!(&fetched.name, account.name().as_str());
         assert_eq!(&fetched.email, account.email().as_str());
-        assert_eq!(&fetched.namespace, account.namespace().as_str());
-        assert_eq!(&fetched.ttl, account.ttl().as_i64());
+        assert_eq!(&fetched.image, account.image().as_str());
+        assert_eq!(&fetched.social_platform, account.social_platform().as_str());
+        assert_eq!(&fetched.social_id, account.social_id().as_str());
+        assert_eq!(&fetched.social_name, account.social_name().as_str());
     } else {
         panic!("created account should be found");
     }
+    tx.rollback()
+        .await
+        .expect("rollback should be done properly");
+    Ok(())
+}
+
+#[sqlx::test]
+async fn test_account_create_and_query_by_email(pool: PgPool) -> Result<()> {
+    let mut tx = pool
+        .begin()
+        .await
+        .expect("transaction should be started properly");
+    let account = create_account(&mut tx)
+        .await
+        .expect("new account should be created");
+    let fetched = AccountService::query_by_email(account.email(), &mut tx)
+        .await
+        .expect("created account should be found");
+    if let Some(fetched) = fetched {
+        assert_eq!(&fetched.name, account.name().as_str());
+        assert_eq!(&fetched.email, account.email().as_str());
+        assert_eq!(&fetched.image, account.image().as_str());
+        assert_eq!(&fetched.social_platform, account.social_platform().as_str());
+        assert_eq!(&fetched.social_id, account.social_id().as_str());
+        assert_eq!(&fetched.social_name, account.social_name().as_str());
+    } else {
+        panic!("created account should be found");
+    }
+    tx.rollback()
+        .await
+        .expect("rollback should be done properly");
+    Ok(())
+}
+
+#[sqlx::test]
+async fn test_account_create_and_count_by_name_prefix(pool: PgPool) -> Result<()> {
+    let mut tx = pool
+        .begin()
+        .await
+        .expect("transaction should be started properly");
+    let account = create_account(&mut tx)
+        .await
+        .expect("new account should be created");
+    let prefix = account
+        .name()
+        .to_string()
+        .chars()
+        .take(testutils::rand::usize(10))
+        .collect::<String>();
+    let count = AccountService::count_by_name_prefix(&prefix, &mut tx)
+        .await
+        .expect("created account should be counted");
+    assert_eq!(count.result, 1);
     tx.rollback()
         .await
         .expect("rollback should be done properly");

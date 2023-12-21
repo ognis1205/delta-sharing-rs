@@ -30,9 +30,39 @@ async fn test_account_create_and_select_by_name(pool: PgPool) -> Result<()> {
     assert_eq!(&fetched.id, account.id().as_uuid());
     assert_eq!(&fetched.name, account.name().as_str());
     assert_eq!(&fetched.email, account.email().as_str());
-    assert_eq!(&fetched.password, account.password().as_str());
-    assert_eq!(&fetched.namespace, account.namespace().as_str());
-    assert_eq!(&fetched.ttl, account.ttl().as_i64());
+    assert_eq!(&fetched.image, account.image().as_str());
+    assert_eq!(&fetched.social_platform, account.social_platform().as_str());
+    assert_eq!(&fetched.social_id, account.social_id().as_str());
+    assert_eq!(&fetched.social_name, account.social_name().as_str());
+
+    tx.rollback()
+        .await
+        .expect("rollback should be done properly");
+    Ok(())
+}
+
+#[sqlx::test]
+async fn test_account_create_and_select_by_email(pool: PgPool) -> Result<()> {
+    let mut tx = pool
+        .begin()
+        .await
+        .expect("transaction should be started properly");
+    let account = create_account(&mut tx)
+        .await
+        .expect("new account should be created");
+    let fetched = AccountRepository::select_by_email(account.email(), &mut tx)
+        .await
+        .expect("created account should be found");
+    assert!(fetched.is_some());
+
+    let fetched = fetched.unwrap();
+    assert_eq!(&fetched.id, account.id().as_uuid());
+    assert_eq!(&fetched.name, account.name().as_str());
+    assert_eq!(&fetched.email, account.email().as_str());
+    assert_eq!(&fetched.image, account.image().as_str());
+    assert_eq!(&fetched.social_platform, account.social_platform().as_str());
+    assert_eq!(&fetched.social_id, account.social_id().as_str());
+    assert_eq!(&fetched.social_name, account.social_name().as_str());
 
     tx.rollback()
         .await
@@ -46,10 +76,13 @@ async fn test_token_create(pool: PgPool) -> Result<()> {
         .begin()
         .await
         .expect("transaction should be started properly");
-    let account = create_account(&mut tx)
+    let provider = create_account(&mut tx)
         .await
         .expect("new account should be created");
-    create_token(account.id(), &mut tx)
+    let recipient = create_account(&mut tx)
+        .await
+        .expect("new account should be created");
+    create_token(provider.id(), recipient.id(), &mut tx)
         .await
         .expect("new token should be created");
     tx.rollback()
