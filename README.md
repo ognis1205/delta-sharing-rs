@@ -165,20 +165,16 @@ using the corresponding environment variables, which is helpful when setting up 
 variables `AWS_SHARED_CREDENTIALS_FILE` and `GOOGLE_APPLICATION_CREDENTIALS` are set properly if necessary.
 Below is a list of the configuration variables:
 
-| Name                 | Environment Variable        | Required | Description                                                                      |
-|:--------------------:|:---------------------------:|:--------:|----------------------------------------------------------------------------------|
-| `db_url`             | DELTA_SHARING_RS_DB_URL             | yes      | URL of PostgreSQL server                                                         |
-| `server_addr`        | DELTA_SHARING_RS_SERVER_ADDR        | yes      | URL of Delys Sharing server which will be used for sharing profile               |
-| `server_bind`        | DELTA_SHARING_RS_SERVER_BIND        | yes      | IP address of Korosiro Sharing server which will be used for Axum server binding |
-| `admin_name`         | DELTA_SHARING_RS_ADMIN_NAME         | yes      | Default admin user name                                                          |
-| `admin_email`        | DELTA_SHARING_RS_ADMIN_EMAIL        | yes      | Default admin user email                                                         |
-| `admin_password`     | DELTA_SHARING_RS_ADMIN_PASSWORD     | yes      | Default admin user password                                                      |
-| `admin_namespace`    | DELTA_SHARING_RS_ADMIN_NAMESPACE    | yes      | Default admin user namespace                                                     |
-| `admin_ttl`          | DELTA_SHARING_RS_ADMIN_TTL          | yes      | Default admin user access token TTL in seconds                                   |
-| `signed_url_ttl`     | DELTA_SHARING_RS_SIGNED_URL_TTL     | yes      | Valid duration of signed URL of cloud backends in seconds                        |
-| `jwt_secret`         | DELTA_SHARING_RS_JWT_SECRET         | yes      | JWT secret key                                                                   |
-| `use_json_log`       | DELTA_SHARING_RS_USE_JSON_LOG       | yes      | If this value set to be true, log outputs in JSON format                         |
-| `log_filter`         | DELTA_SHARING_RS_LOG_FILTER         | yes      | Tracing log filter                                                               |
+| Name                 | Environment Variable            | Required | Description                                                                      |
+|:--------------------:|:-------------------------------:|:--------:|----------------------------------------------------------------------------------|
+| `db_url`             | DELTA_SHARING_RS_DB_URL         | yes      | URL of PostgreSQL server                                                         |
+| `server_addr`        | DELTA_SHARING_RS_SERVER_ADDR    | yes      | URL of Delys Sharing server which will be used for sharing profile               |
+| `server_bind`        | DELTA_SHARING_RS_SERVER_BIND    | yes      | IP address of Korosiro Sharing server which will be used for Axum server binding |
+| `signed_url_ttl`     | DELTA_SHARING_RS_SIGNED_URL_TTL | yes      | Valid duration of signed URL of cloud backends in seconds                        |
+| `secret`             | DELTA_SHARING_RS_SECRET         | yes      | Opaque token secret key                                                          |
+| `hasher`             | DELTA_SHARING_RS_HASHER         | yes      | Opaque token signature hasher                                                    |
+| `use_json_log`       | DELTA_SHARING_RS_USE_JSON_LOG   | yes      | If this value set to be true, log outputs in JSON format                         |
+| `log_filter`         | DELTA_SHARING_RS_LOG_FILTER     | yes      | Tracing log filter                                                               |
 
 [^1]: An example configuration can also be found at [`config`](https://github.com/delta-incubator/delta-sharing-rs/tree/main/config) directory.
 

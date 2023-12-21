@@ -177,7 +177,8 @@ mod tests {
         assert!(config.get::<String>("db_url").is_ok());
         assert!(config.get::<String>("server_addr").is_ok());
         assert!(config.get::<String>("server_bind").is_ok());
-        assert!(config.get::<String>("jwt_secret").is_ok());
+        assert!(config.get::<String>("secret").is_ok());
+        assert!(config.get::<String>("hasher").is_ok());
         assert!(config.get::<String>("use_json_log").is_ok());
         assert!(config.get::<String>("log_filter").is_ok());
     }

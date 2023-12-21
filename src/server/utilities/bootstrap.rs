@@ -1,7 +1,7 @@
 use anyhow::Result;
 use sqlx::PgPool;
 
-pub use crate::server::middlewares::auth::Keys as JwtKeys;
+pub use crate::server::utilities::token::Hasher as HmacHasher;
 
 pub struct Utility;
 

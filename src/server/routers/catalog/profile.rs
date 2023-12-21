@@ -85,7 +85,6 @@ pub async fn post(
     let Ok(profile) = ProfileService::issue(
         id.clone(),
         provider.name().to_string(),
-        recipient.name().to_string(),
         payload.ttl,
     ) else {
         tracing::error!(

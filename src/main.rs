@@ -25,8 +25,9 @@ async fn main() -> Result<()> {
                 db_url = config::fetch::<String>("db_url"),
                 server_addr = config::fetch::<String>("server_addr"),
                 server_bind = config::fetch::<String>("server_bind"),
-                jwt_secret = config::fetch::<String>("jwt_secret"),
                 signed_url_ttl = config::fetch::<i64>("signed_url_ttl"),
+                secret = config::fetch::<String>("secret"),
+                hasher = config::fetch::<String>("hasher"),
                 use_json_log = config::fetch::<bool>("use_json_log"),
                 log_filter = config::fetch::<String>("log_filter"),
             );
